@@ -13,7 +13,7 @@ IPINFO_TOKEN = os.getenv("IPINFO_TOKEN")
 
 def get_geolocation(ip):
     try: 
-        url = f"https://ipinfo.io/{ip}?token={IPINFO_TOKEN}"
+        url = f"https://api.ipinfo.io/lite/{ip}?token={IPINFO_TOKEN}"
         response = requests.get(url)
         response.raise_for_status()
 
