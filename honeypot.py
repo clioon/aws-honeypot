@@ -43,13 +43,49 @@ def start_honeypot(host, port):
 
         while True:
             try:
+                # Connection start
                 conn, addr = s.accept()
                 with conn:
+                    # Get IP location info
                     geo_info = get_geolocation(addr[0])
-                    log_message = f"[NEW CONNECTION]: IP: {addr[0]}:{addr[1]} | {geo_info}"
-                    print(log_message)
-                    write_log(log_message)
+                    log_connection = f"[NEW CONNECTION]: IP: {addr[0]}:{addr[1]} | {geo_info}"
+                    print(log_connection)
+                    write_log(log_connection)
+
+                    # Send fake welcome
                     conn.sendall(b"Welcome to the Telnet server!\r\nUsername: ")
+
+                    # Wait to capture response
+                    conn.settimeout(10.0)
+
+                    while True:
+                        try:
+                            recv_data = conn.recv(1024)
+                            
+                            if recv_data:
+                                data_decode = recv_data.decode('utf-8', 'ignore').strip()
+                                log_data = f"[RX] From {addr[0]}:{addr[1]} | Message: {data_decode}"
+                                print(log_data)
+                                write_log(log_data)
+                            
+                            else: 
+                                log_closed = f"[CONNECTION CLOSED] clent {addr[0]}:{addr[1]} disconnected"
+                                print(log_closed)
+                                write_log(log_closed)
+                                break
+
+                        except socket.timeout:
+                            log_timeout = f"[CONNECTION TIMEOUT] client {addr[0]}:{addr[1]} did not respond."
+                            print(log_timeout)
+                            write_log(log_timeout)
+                            break
+
+                        except Exception as e:
+                            log_connError = f"[CONNECTION ERROR] connection with client {addr[0]}:{addr[1]} error"
+                            print(log_connError)
+                            write_log(log_connError)
+                            break
+
             except Exception as e:
                 error_message = f"Error: {e}"
                 print(f"[!] {error_message}")
