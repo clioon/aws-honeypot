@@ -1,9 +1,0 @@
-[2025-10-20 10:46:01] Honeypot started: 0.0.0.0:23
-[2025-10-20 10:46:01] Honeypot starting error: [Errno 98] Address already in use
-[2025-10-20 10:46:16] Honeypot started: 0.0.0.0:23
-[2025-10-20 10:46:28] [NEW CONNECTION]: IP: 127.0.0.1:60742 | Name: Unknown | Domain: Unknown | Country: Unknown | Continent: Unknown
-[2025-10-20 10:46:38] [RX] From 127.0.0.1:60742 | Message: oi
-[2025-10-20 10:46:40] [RX] From 127.0.0.1:60742 | Message: teste
-[2025-10-20 10:46:41] [RX] From 127.0.0.1:60742 | Message: senha
-[2025-10-20 10:46:51] [CONNECTION TIMEOUT] client 127.0.0.1:60742 did not respond.
-[2025-10-20 10:49:34] Honeypot successfully closed.
