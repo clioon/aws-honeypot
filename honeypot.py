@@ -3,13 +3,18 @@ import datetime
 import requests
 import os
 from dotenv import load_dotenv
+import banners
 
 load_dotenv()
 
+# =====================
 HOST = '0.0.0.0'
 PORT = 23 #Telnet
 LOG_FILE = "honeypot_log.txt"
 IPINFO_TOKEN = os.getenv("IPINFO_TOKEN")
+BANNER_NAME = os.getenv("BANNER_NAME", "telnet_ubuntu")
+BANNER_TO_SEND = banners.BANNERS.get(BANNER_NAME, banners.BANNERS["default"])
+# =====================
 
 def get_geolocation(ip):
     try: 
@@ -52,8 +57,8 @@ def start_honeypot(host, port):
                     print(log_connection)
                     write_log(log_connection)
 
-                    # Send fake welcome
-                    conn.sendall(b"Welcome to the Telnet server!\r\nUsername: ")
+                    # Send fake banner
+                    conn.sendall(BANNER_TO_SEND)
 
                     # Wait to capture response
                     conn.settimeout(10.0)
