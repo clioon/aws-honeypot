@@ -69,9 +69,17 @@ def start_honeypot(host, port):
                             
                             if recv_data:
                                 data_decode = recv_data.decode('utf-8', 'ignore').strip()
-                                log_data = f"[RX] From {addr[0]}:{addr[1]} | Message: {data_decode}"
-                                print(log_data)
-                                write_log(log_data)
+
+                                if data_decode:
+                                    log_data = f"[RX] From {addr[0]}:{addr[1]} | Message: {data_decode}"
+                                    print(log_data)
+                                    write_log(log_data)
+
+                                    if data_decode.lower() in ['root', 'admin', 'user', 'test', 'oracle']:
+                                        conn.sendall(b"Password: ")
+                                    else:
+                                        conn.sendall(b"Login incorrect\r\n")
+                                        conn.sendall(BANNER_TO_SEND)
                             
                             else: 
                                 log_closed = f"[CONNECTION CLOSED] clent {addr[0]}:{addr[1]} disconnected"
