@@ -15,10 +15,10 @@ MAIN_LOG_FILE = os.path.join(LOG_DIR, "honeypot_main.log")
 LOG_LOCK = threading.Lock()
 IPINFO_TOKEN = os.getenv("IPINFO_TOKEN")
 PORT_BANNER_MAP = {
-    21: "ftp_vsftpd_3_0_3",  # FTP
-    23: "telnet_ubuntu",     # Telnet
+    #21: "ftp_vsftpd",
+    23: "telnet_ubuntu",
 }
-MAX_NUMBER_MESSAGES =  int(os.getenv("MAX_NUMBER_MESSAGES", "10"))
+MAX_NUMBER_MESSAGES =  int(os.getenv("MAX_NUMBER_MESSAGES", "20"))
 # =====================
 
 def get_geolocation(ip):
@@ -47,6 +47,7 @@ def write_log(message, filename):
 def handle_connection(conn, addr, log_file):
     client_ip, client_port = addr
     my_port = conn.getsockname()[1]
+    session_state = "LOGIN"
 
     try:
         # get ip loctaion info
@@ -55,38 +56,63 @@ def handle_connection(conn, addr, log_file):
         print(log_connection)
         write_log(log_connection, log_file)
 
-        # send banner
-        banner_name = PORT_BANNER_MAP.get(my_port, "telnet_default")
-        banner_to_send = banners.BANNERS.get(banner_name, banners.BANNERS["default"])
+        # banner
+        banner_name = PORT_BANNER_MAP.get(my_port, "default")
+        banner_profile = banners.BANNERS.get(banner_name, banners.BANNERS["default"])
+
+        banner_to_send = banner_profile.get("initial", b"login: ")
+        banner_success = banner_profile.get("success", b"\r\nWelcome\r\n")
+        fake_prompt = banner_profile.get("prompt", b"# ")
+
         conn.sendall(banner_to_send)
         message_count = 0
 
         # interaction
-        conn.settimeout(10.0)
+        conn.settimeout(30.0)
         while True:
+            if message_count >= MAX_NUMBER_MESSAGES:
+                log_message_limit = f"[MESSAGE LIMIT] client {addr[0]}:{addr[1]} already sent {MAX_NUMBER_MESSAGES} messages."
+                print(log_message_limit)
+                write_log(log_message_limit, log_file)
+                break
+
             try:
                 recv_data = conn.recv(1024)
-                
-                if message_count >= MAX_NUMBER_MESSAGES:
-                    log_message_limit = f"[MESSAGE LIMIT] client {addr[0]}:{addr[1]} already sent {MAX_NUMBER_MESSAGES} messages."
-                    print(log_message_limit)
-                    write_log(log_message_limit, log_file)
-                    break
-                
+
                 if recv_data:
                     message_count += 1
                     data_decode = recv_data.decode('utf-8', 'ignore').strip()
 
-                    if data_decode:
-                        log_data = f"[RX] From {addr[0]}:{addr[1]} | Message: {data_decode}"
+                    if not data_decode: continue
+
+                    if session_state == "LOGIN":
+                        log_data = f"[LOGIN ATTEMPT] From {addr[0]}:{addr[1]} | User: {data_decode}"
                         print(log_data)
                         write_log(log_data, log_file)
 
                         if data_decode.lower() in ['root', 'admin', 'user', 'test', 'oracle']:
                             conn.sendall(b"Password: ")
+                            session_state = "PASSWORD"
                         else:
                             conn.sendall(b"Incorrect login\r\n")
                             conn.sendall(banner_to_send)
+                    
+                    elif session_state == "PASSWORD":
+                        log_data = f"[PASSWORD ATTEMPT] From {addr[0]}:{addr[1]} | Password: {data_decode}"
+                        print(log_data)
+                        write_log(log_data, log_file)
+
+                        conn.sendall(banner_success)                        
+                        conn.sendall(fake_prompt)
+                        session_state = "SHELL"
+                    
+                    elif session_state == "SHELL":
+                        log_data = f"[SHELL COMMAND] From {addr[0]}:{addr[1]} | Command: {data_decode}"
+                        print(log_data)
+                        write_log(log_data, log_file)
+
+                        conn.sendall(f"bash: {data_decode}: command not found\r\n".encode('utf-8'))
+                        conn.sendall(fake_prompt)
                 
                 else: 
                     log_closed = f"[CONNECTION CLOSED] clent {addr[0]}:{addr[1]} disconnected"
