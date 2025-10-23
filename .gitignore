@@ -1,5 +1,5 @@
 __pycache__/
-*.txt
+logs/
 *.log
 nohup.out
 .env
