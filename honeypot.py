@@ -14,11 +14,24 @@ LOG_DIR = "logs"
 MAIN_LOG_FILE = os.path.join(LOG_DIR, "honeypot_main.log")
 LOG_LOCK = threading.Lock()
 IPINFO_TOKEN = os.getenv("IPINFO_TOKEN")
-PORT_BANNER_MAP = {
-    #21: "ftp_vsftpd",
-    23: "telnet_ubuntu",
-}
 MAX_NUMBER_MESSAGES =  int(os.getenv("MAX_NUMBER_MESSAGES", "20"))
+
+def parse_port_map():
+    port_map = {}
+    ports_str = os.getenv("HONEYPOT_PORTS", "23:telnet_ubuntu")
+    
+    try:
+        ports_str = ports_str.strip().strip('"')
+        for pair in ports_str.split(','):
+            port_str, banner_name = pair.split(':')
+            port_map[int(port_str)] = banner_name
+        return port_map
+    except Exception as e:
+        print(f"[!!] Error reading ports configs: {e}")
+        print("[*] Using default port: 23 (Telnet)")
+        return {23: "telnet_ubuntu"}
+    
+PORT_BANNER_MAP = parse_port_map()
 # =====================
 
 def get_geolocation(ip):
